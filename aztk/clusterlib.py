@@ -80,10 +80,11 @@ class Cluster:
         cmd.add_option('-e', 'SPARK_WORKER_UI_PORT=$SPARK_WORKER_UI_PORT')
         cmd.add_option('-e', 'SPARK_JUPYTER_PORT=$SPARK_JUPYTER_PORT')
         cmd.add_option('-e', 'SPARK_WEB_UI_PORT=$SPARK_WEB_UI_PORT')
-        cmd.add_option('-p', '8080:8080')
         cmd.add_option('-p', '7077:7077')
+        cmd.add_option('-p', '8080:8080')
         cmd.add_option('-p', '4040:4040')
         cmd.add_option('-p', '8888:8888')
+        cmd.add_option('-p', '8787:8787')
         cmd.add_option('-d', docker_repo)
         cmd.add_argument('/bin/bash /batch/startup/wd/docker_main.sh')
         return cmd.to_str()
@@ -270,6 +271,26 @@ class Cluster:
                 zip_resource_file, docker_repo),
             enable_inter_node_communication=True,
             max_tasks_per_node=1,
+            network_configuration=batch_models.NetworkConfiguration(
+                endpoint_configuration=batch_models.PoolEndpointConfiguration(
+                    inbound_nat_pools = [
+                        batch_models.InboundNATPool(
+                            backend_port = constants.DOCKER_SPARK_RSTUDIO_PORT,
+                            frontend_port_range_start = constants.DOCKER_SPARK_RSTUDIO_PORT,
+                            frontend_port_range_end = constants.DOCKER_SPARK_RSTUDIO_PORT + 40,
+                            name = "rstudio",
+                            protocol = "tcp"
+                        ),
+                        batch_models.InboundNATPool(
+                            backend_port = 7077,
+                            frontend_port_range_start = 7077,
+                            frontend_port_range_end = 7077 + 40,
+                            name = "spark-rstudio",
+                            protocol = "tcp"
+                        ),
+                    ]
+                )
+            ),
             metadata=[
                 batch_models.MetadataItem(
                     name=constants.AZTK_SOFTWARE_METADATA_KEY, value=Software.spark),
@@ -529,6 +550,10 @@ class Cluster:
             jobui, spark_web_ui_port), enable=bool(jobui))
         ssh_command.add_option("-L", "{0}:localhost:{1}".format(
             jupyter, spark_jupyter_port), enable=bool(jupyter))
+        ssh_command.add_option("-L", "{0}:localhost:{1}".format(
+            constants.DOCKER_SPARK_RSTUDIO_PORT, constants.DOCKER_SPARK_RSTUDIO_PORT), enable=bool(True))
+        ssh_command.add_option("-L", "{0}:localhost:{1}".format(
+            7077, 7077), enable=bool(True))
 
         if ports is not None:
             for port in ports:
