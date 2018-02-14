@@ -11,9 +11,12 @@ def setup_parser(parser: argparse.ArgumentParser):
                         dest='job_id',
                         required=True,
                         help='The unique id of your AZTK job')
+    parser.add_argument('--apps',
+                        action='store_true',
+                        help='Also list applications')
 
 
 def execute(args: typing.NamedTuple):
     spark_client = aztk.spark.Client(config.load_aztk_secrets())
 
-    utils.print_job(spark_client, spark_client.get_job(args.job_id))
+    utils.print_job(spark_client, spark_client.get_job(args.job_id), args.apps)

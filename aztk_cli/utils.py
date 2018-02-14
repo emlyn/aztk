@@ -5,7 +5,7 @@ import threading
 import time
 import yaml
 from subprocess import call
-from typing import List
+from typing import Dict, List
 import azure.batch.models as batch_models
 from aztk import error, utils
 from aztk.utils import get_ssh_key, helpers
@@ -254,7 +254,14 @@ def print_jobs(jobs: List[models.Job]):
         )
 
 
-def print_job(client, job: models.Job):
+def get_applications(client, job: models.Job):
+    if job.applications:
+        return {j.name: j for j in job.applications}
+    else:
+        return client.list_applications(job.id)
+
+
+def print_job(client, job: models.Job, apps: bool):
     print_format = '{:<36}| {:<15}'
 
     log.info("")
@@ -274,11 +281,12 @@ def print_job(client, job: models.Job):
             log.info(print_format.format("Cluster", "Provisioning"))
             log.info("")
 
-    if job.applications:
-        application_summary(job.applications)
-    else:
-        application_summary(client.list_applications(job.id))
+    applications = get_applications(client, job)
+    application_summary(applications)
     log.info("")
+    if apps:
+        print_applications(applications)
+        log.info("")
 
 
 def node_state_count(cluster: models.Cluster):
@@ -303,22 +311,22 @@ def print_cluster_summary(cluster: models.Cluster):
     log.info("")
 
 
-def application_summary(applications):
+def application_summary(applications: Dict[str, models.Application]):
     states = {"scheduling": 0}
     for state in batch_models.TaskState:
         states[state.name] = 0
 
     warn_scheduling = False
 
-    for application in applications:
-        if type(application) == str:
+    for name, application in applications.items():
+        if application is None:
             states["scheduling"] += 1
             warn_scheduling = True
         else:
             states[application.state] += 1
 
     print_format = '{:<17} {:<14}'
-    log.info("Applications")
+    log.info("Application States")
     log.info("-"*42)
     for state in states:
         if states[state] > 0:
@@ -327,15 +335,15 @@ def application_summary(applications):
     if warn_scheduling:
         log.warning("\nNo Spark applications will be scheduled until the master is selected.")
 
-def print_applications(applications):
+def print_applications(applications: Dict[str, models.Application]):
     print_format = '{:<36}| {:<15}| {:<16} | {:^9} |'
     print_format_underline = '{:-<36}|{:-<16}|{:-<18}|{:-<11}|'
     log.info(print_format.format("Applications", "State", "Transition Time", "Exit Code"))
     log.info(print_format_underline.format('', '', '', ''))
 
     warn_scheduling = False
-    for name in applications:
-        if applications[name] is None:
+    for name, application in applications.items():
+        if application is None:
             log.info(
                 print_format.format(
                     name,
@@ -346,10 +354,9 @@ def print_applications(applications):
             )
             warn_scheduling = True
         else:
-            application = applications[name]
             log.info(
                 print_format.format(
-                    application.name,
+                    name,
                     application.state,
                     utc_to_local(application.state_transition_time),
                     application.exit_code if application.exit_code is not None else "-"
