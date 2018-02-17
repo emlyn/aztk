@@ -287,6 +287,8 @@ def print_job(client, job: models.Job, apps: bool):
     if apps:
         print_applications(applications)
         log.info("")
+    else:
+        warn_scheduling(applications)
 
 
 def node_state_count(cluster: models.Cluster):
@@ -316,12 +318,9 @@ def application_summary(applications: Dict[str, models.Application]):
     for state in batch_models.TaskState:
         states[state.name] = 0
 
-    warn_scheduling = False
-
     for name, application in applications.items():
         if application is None:
             states["scheduling"] += 1
-            warn_scheduling = True
         else:
             states[application.state] += 1
 
@@ -332,7 +331,14 @@ def application_summary(applications: Dict[str, models.Application]):
         if states[state] > 0:
             log.info(print_format.format(state + ":", states[state]))
 
-    if warn_scheduling:
+
+def warn_scheduling(applications: Dict[str, models.Application]):
+    warn = False
+    for application in applications.values():
+        if application is None:
+            warn = True
+            break
+    if warn:
         log.warning("\nNo Spark applications will be scheduled until the master is selected.")
 
 def print_applications(applications: Dict[str, models.Application]):
@@ -341,7 +347,6 @@ def print_applications(applications: Dict[str, models.Application]):
     log.info(print_format.format("Applications", "State", "Transition Time", "Exit Code"))
     log.info(print_format_underline.format('', '', '', ''))
 
-    warn_scheduling = False
     for name, application in applications.items():
         if application is None:
             log.info(
@@ -352,7 +357,6 @@ def print_applications(applications: Dict[str, models.Application]):
                     "-"
                 )
             )
-            warn_scheduling = True
         else:
             log.info(
                 print_format.format(
@@ -362,8 +366,7 @@ def print_applications(applications: Dict[str, models.Application]):
                     application.exit_code if application.exit_code is not None else "-"
                 )
             )
-    if warn_scheduling:
-        log.warning("\nNo Spark applications will be scheduled until the master is selected.")
+    warn_scheduling(applications)
 
 def print_application(application: models.Application):
     print_format = '{:<30}| {:<15}'
