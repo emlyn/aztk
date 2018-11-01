@@ -42,6 +42,11 @@ def get_ssh_key_or_prompt(ssh_key, username, password, secrets_configuration):
     return ssh_key, password
 
 
+def format_datetime(datetime, include_seconds=True):
+    format = '%Y-%m-%d %H:%M' + (':%S' if include_seconds else '')
+    return datetime.strftime(format)
+
+
 def print_cluster(client, cluster: models.Cluster, internal: bool = False):
     node_count = __pretty_node_count(cluster)
 
@@ -50,7 +55,7 @@ def print_cluster(client, cluster: models.Cluster, internal: bool = False):
     log.info("------------------------------------------")
     log.info("State:          %s", cluster.state.value)
     log.info("Node Size:      %s", cluster.vm_size)
-    log.info("Created:        %s", cluster.pool.creation_time.strftime('%Y-%m-%d %H:%M:%S'))
+    log.info("Created:        %s", format_datetime(cluster.pool.creation_time))
     log.info("Nodes:          %s", node_count)
     log.info("| Dedicated:    %s", __pretty_dedicated_node_count(cluster))
     log.info("| Low priority: %s", __pretty_low_pri_node_count(cluster))
@@ -116,7 +121,7 @@ def print_clusters(clusters: List[models.Cluster]):
         node_count = __pretty_node_count(cluster)
 
         log.info(print_format.format(cluster.id, cluster.state.value, cluster.vm_size, node_count,
-                                     cluster.pool.creation_time.strftime('%Y-%m-%d %H:%M')))
+                                     format_datetime(cluster.pool.creation_time, False)))
 
 
 def print_clusters_quiet(clusters: List[models.Cluster]):
