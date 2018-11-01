@@ -50,6 +50,7 @@ def print_cluster(client, cluster: models.Cluster, internal: bool = False):
     log.info("------------------------------------------")
     log.info("State:          %s", cluster.state.value)
     log.info("Node Size:      %s", cluster.vm_size)
+    log.info("Created:        %s", cluster.pool.creation_time.strftime('%Y-%m-%d %H:%M:%S'))
     log.info("Nodes:          %s", node_count)
     log.info("| Dedicated:    %s", __pretty_dedicated_node_count(cluster))
     log.info("| Low priority: %s", __pretty_low_pri_node_count(cluster))
@@ -106,15 +107,16 @@ def __pretty_low_pri_node_count(cluster: models.Cluster) -> str:
 
 
 def print_clusters(clusters: List[models.Cluster]):
-    print_format = "{:<34}| {:<10}| {:<20}| {:<7}"
-    print_format_underline = "{:-<34}|{:-<11}|{:-<21}|{:-<7}"
+    print_format = "{:<34}| {:<10}| {:<20}| {:<7}| {:<16}"
+    print_format_underline = "{:-<34}|{:-<11}|{:-<21}|{:-<8}|{:-<17}"
 
-    log.info(print_format.format("Cluster", "State", "VM Size", "Nodes"))
-    log.info(print_format_underline.format("", "", "", ""))
+    log.info(print_format.format("Cluster", "State", "VM Size", "Nodes", "Created"))
+    log.info(print_format_underline.format("", "", "", "", ""))
     for cluster in clusters:
         node_count = __pretty_node_count(cluster)
 
-        log.info(print_format.format(cluster.id, cluster.state.value, cluster.vm_size, node_count))
+        log.info(print_format.format(cluster.id, cluster.state.value, cluster.vm_size, node_count,
+                                     cluster.pool.creation_time.strftime('%Y-%m-%d %H:%M')))
 
 
 def print_clusters_quiet(clusters: List[models.Cluster]):
