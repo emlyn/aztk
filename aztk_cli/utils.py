@@ -120,8 +120,9 @@ def print_clusters(clusters: List[models.Cluster]):
     for cluster in clusters:
         node_count = __pretty_node_count(cluster)
 
-        log.info(print_format.format(cluster.id, cluster.state.value, cluster.vm_size, node_count,
-                                     format_datetime(cluster.pool.creation_time, False)))
+        log.info(
+            print_format.format(cluster.id, cluster.state.value, cluster.vm_size, node_count,
+                                format_datetime(cluster.pool.creation_time, False)))
 
 
 def print_clusters_quiet(clusters: List[models.Cluster]):
