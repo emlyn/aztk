@@ -134,7 +134,8 @@ def stream_logs(client, cluster_id, application_name):
     while True:
         app_logs = client.cluster.get_application_log(
             id=cluster_id, application_name=application_name, tail=True, current_bytes=current_bytes)
-        log.print(app_logs.log)
+        if app_logs.total_bytes > current_bytes:
+            print(app_logs.log, end='', flush=True)
         if app_logs.application_state == ApplicationState.Completed:
             return app_logs.exit_code
         current_bytes = app_logs.total_bytes
